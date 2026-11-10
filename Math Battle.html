@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Math Battle</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f3f7fb; --grid:#cfdcea; --ink:#1d2b4a; --soft:#5d6c8a;
+  --card:#ffffff; --pencil:#f2b705; --good:#2f9e5b; --bad:#d6453d; --line:#1d2b4a;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15203a; --grid:#22304f; --ink:#eef3ff; --soft:#9fb0d3;
+    --card:#1d2b4a; --pencil:#ffd23f; --good:#58d68d; --bad:#ff7a70; --line:#eef3ff; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15203a; --grid:#22304f; --ink:#eef3ff; --soft:#9fb0d3;
+  --card:#1d2b4a; --pencil:#ffd23f; --good:#58d68d; --bad:#ff7a70; --line:#eef3ff; color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; color:var(--ink);
+  font-family:"Patrick Hand","Comic Sans MS","Segoe Print",cursive,sans-serif; font-size:20px;
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  display:flex; justify-content:center; padding:20px 14px;
+}
+.wrap{width:100%; max-width:860px; display:grid; grid-template-columns:230px 1fr; gap:20px; align-items:start}
+main{min-width:0}
+.side{margin-bottom:0}
+.side h2{font-size:22px; margin:0 0 8px}
+.side h2:not(:first-child){margin-top:16px}
+.topics{display:flex; flex-direction:column; gap:6px}
+.topics button{font-size:19px; padding:6px 10px; text-align:left; box-shadow:2px 2px 0 var(--line)}
+.topics small{font-size:14px; opacity:.7}
+button.on{background:var(--pencil)}
+@media (max-width:700px){.wrap{grid-template-columns:1fr}.topics{flex-direction:row; flex-wrap:wrap}}
+h1{font-size:34px; margin:0 0 4px; letter-spacing:.5px}
+p{margin:0 0 12px; color:var(--soft)}
+.card{background:var(--card); border:3px solid var(--line); border-radius:14px; padding:16px; box-shadow:5px 5px 0 var(--line); margin-bottom:18px}
+.row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.monster{text-align:center}
+.face{font-size:84px; line-height:1.1; display:inline-block; transition:transform .15s}
+.face.hit{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-12px) rotate(-6deg)}75%{transform:translateX(12px) rotate(6deg)}}
+.name{font-size:24px}
+.bar{height:18px; border:3px solid var(--line); border-radius:10px; overflow:hidden; background:var(--paper); margin-top:8px}
+.bar i{display:block; height:100%; width:100%; background:var(--bad); transition:width .3s}
+.hearts{font-size:26px; letter-spacing:2px}
+.q{font-size:44px; text-align:center; margin:6px 0 14px}
+.choices{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+button{
+  font:inherit; font-size:28px; color:var(--ink); background:var(--card);
+  border:3px solid var(--line); border-radius:12px; padding:12px 8px; cursor:pointer; box-shadow:3px 3px 0 var(--line);
+}
+button:hover{background:var(--pencil)}
+button:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--line)}
+button:focus-visible{outline:4px solid var(--pencil); outline-offset:2px}
+button.right{background:var(--good); color:#fff}
+button.wrong{background:var(--bad); color:#fff}
+button.go{background:var(--pencil); width:100%; color:#1d2b4a}
+.grades{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
+.grades button{font-size:20px; padding:6px 0; box-shadow:2px 2px 0 var(--line)}
+.msg{min-height:30px; text-align:center; margin-top:12px; font-size:22px}
+.hide{display:none}
+@media (prefers-reduced-motion:reduce){.face.hit{animation:none}.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<aside class="card side">
+  <h2>Grade</h2>
+  <div class="grades" id="grades"></div>
+  <h2>Kind of math</h2>
+  <div class="topics" id="topics"></div>
+</aside>
+<main>
+  <h1>Math Battle</h1>
+  <p>Solve each problem to strike the monster. A wrong answer costs you a heart.</p>
+
+  <section class="card" id="start">
+    <p>Pick a grade and a kind of math on the side. Four monsters guard the way, and each one asks harder math than the last.</p>
+    <button class="go" id="startBtn">Start the fight</button>
+  </section>
+
+  <section id="game" class="hide">
+    <div class="card monster">
+      <div class="face" id="face">🐌</div>
+      <div class="name" id="mname"></div>
+      <div class="bar"><i id="mhp"></i></div>
+    </div>
+    <div class="card">
+      <div class="row"><span id="stage"></span><span class="hearts" id="hearts"></span></div>
+      <div class="q" id="q"></div>
+      <div class="choices" id="choices"></div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </section>
+
+  <section class="card hide" id="end">
+    <h1 id="endTitle"></h1>
+    <p id="endText"></p>
+    <button class="go" id="againBtn">Play again</button>
+  </section>
+</main>
+</div>
+
+<script>
+(function(){
+  var monsters=[
+    {n:'Slime Snail',e:'🐌',hp:3},
+    {n:'Goblin',e:'👺',hp:4},
+    {n:'Troll',e:'🧌',hp:5},
+    {n:'Dragon',e:'🐉',hp:6}
+  ];
+  var MAXH=4, lvl=0, hp=0, hearts=MAXH, ans=0, locked=false, grade=0, dec=0, topic='mix';
+  var $=function(id){return document.getElementById(id)};
+  function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+
+  function fmt(v,d){var s=Math.abs(v).toFixed(d||0); return (v<0&&+s!==0)?'−'+s:s}
+  function neg(n){return n<0?'−'+(-n):''+n}
+  function Q(t,a,dec){return{t:t,a:a,dec:dec||0}}
+  function pick1(arr){return arr[rnd(0,arr.length-1)]}
+
+  function makeQ(g,t){
+    var a,b,c,x,k;
+    function s(lo,hi){return rnd(lo,Math.max(lo,Math.round(lo+(hi-lo)*(t+1)/4)))}
+    if(g===0){
+      a=s(1,9); b=s(1,9);
+      if(rnd(0,1)) return Q(a+' + '+b+' = ?',a+b);
+      if(b>a){c=a;a=b;b=c}
+      return Q(a+' − '+b+' = ?',a-b);
+    }
+    if(g===1){
+      a=s(10,60); b=s(2,30);
+      if(rnd(0,1)) return Q(a+' + '+b+' = ?',a+b);
+      if(b>a){c=a;a=b;b=c}
+      return Q(a+' − '+b+' = ?',a-b);
+    }
+    if(g===2){
+      if(t>=1&&rnd(0,1)){a=rnd(2,10); b=pick1([2,5,10]); return Q(a+' × '+b+' = ?',a*b)}
+      a=s(20,99); b=s(10,99);
+      if(rnd(0,1)) return Q(a+' + '+b+' = ?',a+b);
+      if(b>a){c=a;a=b;b=c}
+      return Q(a+' − '+b+' = ?',a-b);
+    }
+    if(g===3){
+      a=s(2,10); b=s(2,10);
+      if(rnd(0,1)) return Q(a+' × '+b+' = ?',a*b);
+      return Q((a*b)+' ÷ '+b+' = ?',a);
+    }
+    if(g===4){
+      k=rnd(0,2);
+      if(k===0){a=s(12,99); b=s(3,9); return Q(a+' × '+b+' = ?',a*b)}
+      if(k===1){a=s(100,900); b=s(100,900); return Q(a+' + '+b+' = ?',a+b)}
+      b=s(3,9); a=b*s(10,40); return Q(a+' ÷ '+b+' = ?',a/b);
+    }
+    if(g===5){
+      k=rnd(0,2);
+      if(k===0){a=s(11,99); b=s(11,99); return Q((a/10).toFixed(1)+' + '+(b/10).toFixed(1)+' = ?',(a+b)/10,1)}
+      if(k===1){a=s(11,99); b=s(11,99); if(b>a){c=a;a=b;b=c} return Q((a/10).toFixed(1)+' − '+(b/10).toFixed(1)+' = ?',(a-b)/10,1)}
+      a=rnd(2,9); b=rnd(2,9); c=s(2,9); return Q(a+' + '+b+' × '+c+' = ?',a+b*c);
+    }
+    if(g===6){
+      k=rnd(0,2);
+      if(k===0){b=20*s(1,10); a=pick1([10,20,25,50]); return Q(a+'% of '+b+' = ?',b*a/100)}
+      if(k===1){a=s(2,15); return Q(a+'² = ?',a*a)}
+      a=rnd(2,6); b=rnd(2,6); c=s(2,9); return Q('('+a+' + '+b+') × '+c+' − '+a+' = ?',(a+b)*c-a);
+    }
+    if(g===7){
+      k=rnd(0,2);
+      if(k===0){a=s(1,15); b=s(1,15); return Q('−'+a+' + '+b+' = ?',b-a)}
+      if(k===1){a=s(2,9); b=s(2,9); return Q('−'+a+' × '+b+' = ?',-a*b)}
+      x=s(2,12); a=s(2,9); return Q(a+'x = '+(a*x)+', so x = ?',x);
+    }
+    if(g===8){
+      k=rnd(0,2);
+      if(k===0){x=s(2,12); a=s(2,9); c=s(1,20); return Q(a+'x + '+c+' = '+(a*x+c)+', so x = ?',x)}
+      if(k===1){a=s(2,15); return Q('√'+(a*a)+' = ?',a)}
+      a=rnd(2,5); b=s(2,4); return Q(a+'^'+b+' = ?',Math.pow(a,b));
+    }
+    k=rnd(0,2);
+    if(k===0){x=rnd(-9,9); if(!x)x=4; a=s(2,9); c=rnd(1,20); return Q(a+'x − '+c+' = '+neg(a*x-c)+', so x = ?',x)}
+    if(k===1){x=rnd(-3,5); a=rnd(1,5); c=rnd(1,10); return Q('f(x) = x² + '+a+'x − '+c+'. f('+neg(x)+') = ?',x*x+a*x-c)}
+    var tr=pick1([[3,4,5],[5,12,13],[8,15,17],[7,24,25],[6,8,10],[9,12,15]].slice(0,Math.min(6,t+3)));
+    return Q('Right triangle, legs '+tr[0]+' and '+tr[1]+'. Hypotenuse = ?',tr[2]);
+  }
+
+  function options(q){
+    var correct=q.a, d=q.dec, big=Math.abs(correct)>=40, allowNeg=grade>=7;
+    var seen={},list=[correct],v,k,st,guard=0,unit=d?0.1:1;
+    seen[fmt(correct,d)]=1;
+    while(list.length<4&&guard++<300){
+      k=rnd(1,6)*(rnd(0,1)?1:-1);
+      st=(!d&&big&&rnd(0,1))?10:unit;
+      v=+(correct+st*k).toFixed(d);
+      if(!allowNeg&&v<0) continue;
+      if(seen[fmt(v,d)]) continue;
+      seen[fmt(v,d)]=1; list.push(v);
+    }
+    for(var i=list.length-1;i>0;i--){var j=rnd(0,i),x=list[i];list[i]=list[j];list[j]=x}
+    return list;
+  }
+
+  function show(id){['start','game','end'].forEach(function(k){$(k).classList.toggle('hide',k!==id)})}
+
+  function drawHearts(){
+    var h='';
+    for(var i=0;i<MAXH;i++){h+=i<hearts?'❤️':'🖤'}
+    $('hearts').textContent=h;
+  }
+  function drawMonster(){
+    var m=monsters[lvl];
+    $('face').textContent=m.e;
+    $('mname').textContent=m.n;
+    $('stage').textContent='Monster '+(lvl+1)+' of '+monsters.length;
+    $('mhp').style.width=(hp/m.hp*100)+'%';
+  }
+
+  function nextQ(){
+    var q=makeQ(topic,grade,lvl); ans=q.a; dec=q.dec||0; locked=false;
+    $('q').textContent=q.t;
+    $('q').style.fontSize=q.t.length>16?'28px':'44px';
+    $('msg').textContent='';
+    var box=$('choices'); box.innerHTML='';
+    options(q).forEach(function(v){
+      var b=document.createElement('button');
+      b.textContent=fmt(v,dec); b.setAttribute('data-v',v);
+      b.addEventListener('click',function(){pick(b,v)});
+      box.appendChild(b);
+    });
+  }
+
+  function hitFace(){
+    var f=$('face'); f.classList.remove('hit'); void f.offsetWidth; f.classList.add('hit');
+  }
+
+  function pick(btn,v){
+    if(locked) return;
+    locked=true;
+    if(v===ans){
+      btn.classList.add('right');
+      hp--; hitFace(); drawMonster();
+      $('msg').textContent='Hit! Nice work.';
+      if(hp<=0){setTimeout(win,700)} else {setTimeout(nextQ,700)}
+    } else {
+      btn.classList.add('wrong');
+      var all=document.querySelectorAll('#choices button');
+      for(var i=0;i<all.length;i++){if(+all[i].getAttribute('data-v')===ans)all[i].classList.add('right')}
+      hearts--; drawHearts();
+      $('msg').textContent='Ouch. The answer was '+fmt(ans,dec)+'.';
+      if(hearts<=0){setTimeout(lose,1100)} else {setTimeout(nextQ,1300)}
+    }
+  }
+
+  function startMonster(){
+    hp=monsters[lvl].hp; drawMonster(); drawHearts(); nextQ();
+  }
+  function win(){
+    if(lvl>=monsters.length-1){
+      $('endTitle').textContent='You beat every boss!';
+      $('endText').textContent='All four monsters are defeated, with '+hearts+' heart'+(hearts===1?'':'s')+' left.';
+      show('end');
+    } else {
+      lvl++; hearts=Math.min(MAXH,hearts+1);
+      startMonster();
+    }
+  }
+  function lose(){
+    $('endTitle').textContent='You were defeated';
+    $('endText').textContent='The '+monsters[lvl].n+' got you. Try again and beat it this time.';
+    show('end');
+  }
+  function begin(){lvl=0; hearts=MAXH; show('game'); startMonster()}
+  function mark(box,val){var bs=box.children; for(var i=0;i<bs.length;i++){bs[i].classList.toggle('on',bs[i].getAttribute('data-k')===String(val))}}
+  function choose(){
+    mark($('grades'),grade); mark($('topics'),topic);
+    if(!$('game').classList.contains('hide')) begin();
+  }
+
+  for(var g=0;g<=9;g++){(function(n){
+    var b=document.createElement('button');
+    b.textContent=n; b.setAttribute('data-k',n); b.setAttribute('aria-label','Grade '+n);
+    b.addEventListener('click',function(){grade=n; choose()});
+    $('grades').appendChild(b);
+  })(g)}
+  TOPICS.forEach(function(t){
+    var b=document.createElement('button');
+    b.innerHTML=t[1]+(MIN[t[0]]?' <small>(grade '+MIN[t[0]]+'+)</small>':'');
+    b.setAttribute('data-k',t[0]);
+    b.addEventListener('click',function(){topic=t[0]; choose()});
+    $('topics').appendChild(b);
+  });
+  mark($('grades'),grade); mark($('topics'),topic);
+  $('startBtn').addEventListener('click',begin);
+  $('againBtn').addEventListener('click',begin);
+})();
+</script>
+</body>
+</html>
